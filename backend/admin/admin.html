@@ -218,8 +218,9 @@ let pieChart = null;
 
 /* LOAD DATA */
 async function loadData(){
-  tokens = await fetch("/api/token").then(r=>r.json());
-  feedback = await fetch("/api/feedback").then(r=>r.json());
+ tokens = await fetch("https://idt-app-final.onrender.com/api/token").then(r=>r.json());
+feedback = await fetch("https://idt-app-final.onrender.com/api/feedback").then(r=>r.json());
+
 
   // ⭐ NORMALIZE ALL STATUS
   tokens = tokens.map(t => {
@@ -325,20 +326,23 @@ loadEverything();
 
 /* BUTTON FUNCTIONS */
 document.getElementById("clearTokensBtn").addEventListener("click", async () => {
-  await fetch("/api/token/clear", { method:"DELETE" });
+await fetch("https://idt-app-final.onrender.com/api/token/clear", { method:"DELETE" });
+
   await loadEverything();
   alert("All tokens cleared!");
 });
 
 document.getElementById("clearFeedbackBtn").addEventListener("click", async () => {
-  await fetch("/api/feedback/clear", { method:"DELETE" });
+  await fetch("https://idt-app-final.onrender.com/api/feedback/clear", { method:"DELETE" });
+
   await loadEverything();
   alert("All feedback cleared!");
 });
 
 document.getElementById("clearAllBtn").addEventListener("click", async () => {
-  await fetch("/api/token/clear", { method:"DELETE" });
-  await fetch("/api/feedback/clear", { method:"DELETE" });
+ await fetch("https://idt-app-final.onrender.com/api/token/clear", { method:"DELETE" });
+await fetch("https://idt-app-final.onrender.com/api/feedback/clear", { method:"DELETE" });
+
   await loadEverything();
   alert("Everything cleared!");
 });
