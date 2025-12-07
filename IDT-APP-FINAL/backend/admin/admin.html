@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin Dashboard — Hospital</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root{
+      --bg:#f4f6f9;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --accent:#2563eb;
+      --accent-2:#0ea5a4;
+      --text:#0f172a;
+      --shadow:rgba(16,24,40,0.08);
+      --success:#16a34a;
+      --warning:#f59e0b;
+      --danger:#ef4444;
+    }
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter,Arial;
+    }
+    .nav{
+      height:64px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:0 20px;
+      background:var(--card);
+      border-bottom:1px solid rgba(0,0,0,0.1);
+    }
+    .brand{
+      display:flex;align-items:center;gap:12px;
+      font-size:20px;font-weight:700;
+    }
+    .logo{
+      width:36px;height:36px;border-radius:8px;
+      display:flex;justify-content:center;align-items:center;
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      color:white;font-weight:700;
+    }
+    .container{
+      max-width:1200px;margin:20px auto;padding:0 16px;
+    }
+    .controls{
+      display:flex;flex-wrap:wrap;gap:12px;margin-bottom:15px;
+    }
+    .search{
+      flex:1;min-width:240px;background:var(--card);
+      padding:10px;border-radius:8px;
+      display:flex;align-items:center;gap:10px;
+      box-shadow:0 5px 14px var(--shadow);
+    }
+    .search input{
+      flex:1;border:0;outline:none;font-size:14px;
+      background:transparent;color:var(--text);
+    }
+    .btn,.select{
+      padding:10px 12px;border-radius:8px;border:0;
+      background:var(--card);cursor:pointer;
+      box-shadow:0 5px 14px var(--shadow);
+      font-weight:600;
+    }
+    .btn.primary{
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      color:white;
+    }
+    .btn.danger{background:#ef4444;color:white;}
+    .layout{
+      display:grid;grid-template-columns:1fr 360px;gap:18px;
+    }
+    .card{
+      background:var(--card);padding:18px;
+      border-radius:12px;box-shadow:0 10px 30px var(--shadow);
+    }
+    .stats{display:flex;gap:12px;}
+    .stat{flex:1;background:var(--card);padding:14px;border-radius:10px;}
+    .stat .value{font-size:28px;font-weight:800;color:var(--accent);}
+
+    /* FIXED PIE CHART */
+    #pieCard{height:260px!important;position:relative;}
+    #pieChart{width:100%!important;height:200px!important;}
+
+    .table{
+      width:100%;border-collapse:collapse;margin-top:12px;font-size:14px;
+    }
+    .table thead th{
+      padding:12px;color:var(--muted);
+      border-bottom:1px solid rgba(0,0,0,0.1);text-align:left;
+    }
+    .table tbody td{
+      padding:12px;border-bottom:1px solid rgba(0,0,0,0.1);
+    }
+    .table tbody tr:hover{background:rgba(0,0,0,0.04);}
+    .badge{
+      padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;
+      display:inline-block;
+    }
+    .success{background:var(--success);color:white;}
+    .pending{background:var(--warning);color:black;}
+    .cancel{background:var(--danger);color:white;}
+    .dept-item{
+      display:flex;justify-content:space-between;
+      padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.08);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <div class="nav">
+    <div class="brand">
+      <div class="logo">H</div>
+      Hospital Admin Dashboard
+    </div>
+  </div>
+
+  <div class="container">
+
+    <div class="controls">
+      <div class="search">
+        <input id="searchBox" placeholder="Search tokens or feedback...">
+        <button class="btn" id="clearSearch">Clear</button>
+      </div>
+
+      <select id="deptFilter" class="select">
+        <option value="all">All Departments</option>
+      </select>
+
+      <select id="statusFilter" class="select">
+        <option value="all">All Status</option>
+        <option value="completed">Completed</option>
+        <option value="pending">Pending</option>
+        <option value="cancel">Cancelled</option>
+      </select>
+
+      <button class="btn primary" id="refreshBtn">Refresh</button>
+
+      <button class="btn danger" id="clearTokensBtn">Clear Tokens</button>
+      <button class="btn danger" id="clearFeedbackBtn">Clear Feedback</button>
+      <button class="btn danger" id="clearAllBtn" style="background:#b91c1c;">Clear ALL</button>
+    </div>
+
+    <div class="layout">
+
+      <!-- LEFT -->
+      <div>
+
+        <div class="stats">
+          <div class="stat">
+            <div>Total Tokens</div>
+            <div class="value" id="totalTokens">0</div>
+          </div>
+          <div class="stat">
+            <div>Total Feedback</div>
+            <div class="value" id="totalFeedback">0</div>
+          </div>
+          <div class="stat">
+            <div>Departments</div>
+            <div class="value" id="deptCount">0</div>
+          </div>
+        </div>
+
+        <!-- PIE CHART -->
+        <div class="card" id="pieCard">
+          <h3 style="margin-bottom:10px;">Department Token Share</h3>
+          <canvas id="pieChart"></canvas>
+        </div>
+
+        <div class="card" style="margin-top:18px">
+          <h3>Tokens</h3>
+          <table class="table" id="tokensTable">
+            <thead>
+              <tr>
+                <th>#</th><th>Name</th><th>Dept</th><th>Time</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="card" style="margin-top:18px">
+          <h3>Feedback</h3>
+          <table class="table" id="feedbackTable">
+            <thead>
+              <tr>
+                <th>Name</th><th>Dept</th><th>Time</th><th>Message</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- RIGHT -->
+      <div>
+        <div class="card">
+          <h3>Department Summary</h3>
+          <div id="deptList"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+<script>
+let tokens = [];
+let feedback = [];
+let pieChart = null;
+
+/* LOAD DATA */
+async function loadData(){
+  tokens = await fetch("/api/token").then(r=>r.json());
+  feedback = await fetch("/api/feedback").then(r=>r.json());
+
+  // ⭐ NORMALIZE ALL STATUS
+  tokens = tokens.map(t => {
+    let s = t.status?.toLowerCase() || "pending";
+
+    if (s === "resolved") s = "completed";
+
+    return { ...t, status: s };
+  });
+}
+/* STATS */
+function renderStats(){
+  document.getElementById("totalTokens").innerText = tokens.length;
+  document.getElementById("totalFeedback").innerText = feedback.length;
+
+  const depts = new Set(tokens.map(t=>t.dept));
+  document.getElementById("deptCount").innerText = depts.size;
+
+  document.getElementById("deptFilter").innerHTML =
+    `<option value="all">All Departments</option>` +
+    [...depts].map(d=>`<option value="${d}">${d}</option>`).join("");
+}
+
+/* DEPT LIST */
+function renderDeptList(){
+  const list = document.getElementById("deptList");
+  const counts = {};
+  tokens.forEach(t => counts[t.dept] = (counts[t.dept]||0)+1);
+
+  list.innerHTML = Object.keys(counts).map(d => `
+    <div class="dept-item">
+      <strong>${d}</strong>
+      <span>${counts[d]}</span>
+    </div>
+  `).join("");
+}
+
+/* TABLES */
+function renderTables(){
+  const tb = document.querySelector("#tokensTable tbody");
+  tb.innerHTML = tokens.map(t => `
+    <tr>
+      <td>#${t.tokenNumber}</td>
+      <td>${t.name}</td>
+      <td>${t.dept}</td>
+      <td>${t.time || "-"}</td>
+    </tr>
+  `).join("");
+
+  const fb = document.querySelector("#feedbackTable tbody");
+  fb.innerHTML = feedback.map(f => `
+    <tr>
+      <td>${f.name}</td>
+      <td>${f.dept}</td>
+      <td>${f.time || "-"}</td>
+      <td>${f.message}</td>
+    </tr>
+  `).join("");
+}
+
+/* PIE CHART */
+function renderPieChart(){
+  const ctx = document.getElementById("pieChart").getContext("2d");
+
+  const counts = {};
+  tokens.forEach(t => counts[t.dept] = (counts[t.dept]||0)+1);
+
+  const labels = Object.keys(counts);
+  const data = Object.values(counts);
+
+  if(pieChart) pieChart.destroy();
+
+  pieChart = new Chart(ctx,{
+    type:"pie",
+    data:{
+      labels,
+      datasets:[{
+        data,
+        backgroundColor:[
+          "#2563EB","#16A34A","#F59E0B",
+          "#DC2626","#7C3AED","#0EA5A4","#DB2777"
+        ]
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{ legend:{ position:"bottom" }}
+    }
+  });
+}
+
+/* LOAD EVERYTHING */
+async function loadEverything(){
+  await loadData();
+  renderStats();
+  renderDeptList();
+  renderTables();
+  renderPieChart();
+}
+
+loadEverything();
+
+/* BUTTON FUNCTIONS */
+document.getElementById("clearTokensBtn").addEventListener("click", async () => {
+  await fetch("/api/token/clear", { method:"DELETE" });
+  await loadEverything();
+  alert("All tokens cleared!");
+});
+
+document.getElementById("clearFeedbackBtn").addEventListener("click", async () => {
+  await fetch("/api/feedback/clear", { method:"DELETE" });
+  await loadEverything();
+  alert("All feedback cleared!");
+});
+
+document.getElementById("clearAllBtn").addEventListener("click", async () => {
+  await fetch("/api/token/clear", { method:"DELETE" });
+  await fetch("/api/feedback/clear", { method:"DELETE" });
+  await loadEverything();
+  alert("Everything cleared!");
+});
+
+document.getElementById("refreshBtn").addEventListener("click", async () => {
+  await loadEverything();
+  alert("Refreshed!");
+});
+</script>
+
+</body>
+</html>
